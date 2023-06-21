@@ -1,0 +1,39 @@
+# =&:  makes multiple results
+# =:   separates reactants and products
+# _:   replaced with space in output
+# #:   comment
+
+# fundamental
+air, air = pressure
+earth, earth = land
+fire, fire = explosion
+water, water = sea
+air, fire = smoke
+air, water = cloud
+air, earth = dust
+earth, fire = lava
+earth, water = mud
+fire, water = steam
+
+# landmass
+sea, sea = ocean
+ocean, land = continent
+land, land = continent
+land, island = continent
+island, island = continent
+sea, land = island
+land, explosion = earthquake
+continent, explosion = earthquake
+continent, earthquake = mountain
+mountain, explosion = volcano
+
+# space
+continent, continent = planet
+continent, ocean = planet
+planet, planet = solar_system
+planet, fire = star
+star, pressure = black_hole
+star, explosion = supernova
+solar_system, solar_system = galaxy
+galaxy, galaxy = universe
+air, planet = atmosphere

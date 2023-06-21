@@ -1,0 +1,39 @@
+# *: basic element (can not be crafted by combining other elements)
+# ~: final element (can not be combined with other elements)
+# /: category definition (defines asset subfolder)
+
+/root
+*air
+*earth
+*fire
+*water
+
+/basic
+pressure
+land
+energy
+sea
+smoke
+cloud
+dust
+lava
+mud
+steam
+
+/land
+ocean 
+continent
+earthquake
+mountain
+volcano
+island
+
+# space
+planet
+atmosphere
+star
+solar_system
+galaxy
+~black_hole
+~supernova
+~universe
