@@ -11,6 +11,7 @@ public class Element {
 
     public Image icon;
     public int x, y, w, h;
+    public int kuuid = 0;
     public String id;
 
     public static void loadElements() throws FileNotFoundException {
@@ -44,8 +45,8 @@ public class Element {
         this.h = 64;
         this.id = id;
     }
-    public Rectangle getHitbox() {
-        return new Rectangle(this.x, this.y, this.w, this.h);
+    public Rectangle getHitbox(int yoff) {
+        return new Rectangle(this.x, this.y + yoff, this.w, this.h);
     }
 
     @Override public boolean equals(Object o) {
@@ -60,6 +61,12 @@ public class Element {
         Element e = new Element(this.id);
         e.x = this.x;
         e.y = this.y;
+        kuuid *= 2;
+        e.kuuid = kuuid + 1;
         return e;
+    }
+
+    @Override public String toString() {
+        return "Element: " + this.id + " kuuid: " + kuuid + " at (" + this.x + ", " + this.y + ")";
     }
 }

@@ -1,43 +1,77 @@
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Point;
 import java.awt.RenderingHints;
-
+import java.awt.SystemColor;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.io.FileNotFoundException;
+import java.awt.event.MouseWheelListener;
+import java.awt.event.MouseWheelEvent;
 import java.util.ArrayList;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
-public class Game extends JPanel implements MouseListener, MouseMotionListener {
+public class Game extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener {
 
-    public static final int PREF_W = 800;
-    public static final int PREF_H = 600;
+    public static int PREF_W = 800;
+    public static int PREF_H = 600;
+
+    private ArrayList<Element> elements;
+    private ArrayList<Element> discovered;
+    private int mousestartx, mousestarty;
+    private int selstartx, selstarty;
+    private boolean hoveringOverTrash = false;
+    private float trashAnimationProgress = 0f;
+    private float selectedItemShakeProgress = 0f;
+    private int sidebarWidth = 100;
+    private int sidebarPixelsScrolled = 0;
+    private final int discoveredEntryHeightTotal = 75;
+    private Color color1, color2, color3;
+    private Font font1, font2;
+    private Element sel;
 
     public Game() {
         this.setFocusable(true);
-        bg = new Color(170, 0, 210);
-        this.setBackground(bg);
+        this.setPreferredSize(new Dimension(PREF_W, PREF_H));
+
+        color1 = new Color(50, 203, 255);
+        color2 = new Color(0, 165, 224);
+        color3 = new Color(222, 49, 121);
+        font1 = new Font("Arial", Font.PLAIN, 14);
+        font2 = new Font("Cascacida Mono", Font.BOLD, 40);
+
+        this.setBackground(color1);
         this.addMouseListener(this);
         this.addMouseMotionListener(this);
+        this.addMouseWheelListener(this);
+
+        // if resized
+        this.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                Game.PREF_W = evt.getComponent().getWidth();
+                Game.PREF_H = evt.getComponent().getHeight();
+                for (Element e : discovered) {
+                    e.x = Game.PREF_W - sidebarWidth + 5;
+                }
+            }
+        });
 
         elements = new ArrayList<Element>();
         discovered = new ArrayList<Element>();
-
         addToDiscovered(new Element("air"));
         addToDiscovered(new Element("earth"));
         addToDiscovered(new Element("fire"));
         addToDiscovered(new Element("water"));
+        for (Element e : discovered) {
+            e.x = Game.PREF_W - sidebarWidth + 5;
+        }
 
         try {
             Element.loadElements();
@@ -49,33 +83,40 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener {
     }
 
     public void addToDiscovered(Element e) {
-        discovered.add(e);
+        // insert it alphabetically
+        int i = 0;
+        for (Element d : discovered) {
+            if (d.id.compareTo(e.id) > 0) {
+                break;
+            }
+            i++;
+        }
+        discovered.add(i, e);
+
         e.x = PREF_W - 100;
-        e.y = discovered.size() * 64;
+        e.y = discovered.size() * (e.w + 10);
     }
 
-    public void drawElement(Element e, Graphics2D g2, double rot, int rotx, int roty) {
+    public void drawElement(Element e, int yoff, Graphics2D g2, double rot, int rotx, int roty) {
         Color prev = g2.getColor();
         g2.setColor(Color.BLACK);
         g2.rotate(rot, rotx, roty);
-        g2.drawImage(e.icon, e.x, e.y, e.w, e.h, this);
-        g2.rotate(-rot, rotx, roty);
-        g2.drawString(e.id, e.x, e.y);
+        g2.drawImage(e.icon, e.x, e.y + yoff, e.w, e.h, this);
+        g2.rotate(-rot, rotx, roty + yoff);
+        FontMetrics fm = g2.getFontMetrics();
+        String txt = e.id.toUpperCase();
+        int width = fm.stringWidth(txt);
+        g2.drawString(txt, e.x + e.w / 2 - width / 2, e.y + e.h + 10 + yoff);
         g2.setColor(prev);
     }
 
-    private ArrayList<Element> elements;
-    private ArrayList<Element> discovered;
-    private int mousestartx, mousestarty;
-    private int selstartx, selstarty;
-    private boolean hoveringOverTrash = false;
-    private float trashAnimationProgress = 0f;
-    private float selectedItemShakeProgress = 0f;
-    private int sidebarWidth = 100;
-    private Color bg;
-    private Element sel;
     private Timer t = new Timer(1000 / 60, e -> {
         repaint();
+
+        for (Element element : elements) {
+            System.out.print(element.id + "(" + System.identityHashCode(element) + "), ");
+        }
+        System.out.println();
 
         // if hovering over the trash, increase the trash animation progress
         if (hoveringOverTrash) {
@@ -98,17 +139,19 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener {
 
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
-        g2.setBackground(bg);
+        g2.setFont(font1);
+        g2.setBackground(color1);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         // discovered bar
-        g2.setColor(bg.darker());
+        g2.setColor(color2);
         g2.fillRect(PREF_W - sidebarWidth, 0, sidebarWidth, PREF_H);
         g2.setColor(Color.BLACK);
-        discovered.forEach(element -> drawElement(element, g2, 0, 0, 0));
+        discovered.forEach(element -> drawElement(element, sidebarPixelsScrolled, g2, 0, 0, 0));
 
         // trash bar
         if (trashAnimationProgress != 0) {
-            g2.setColor(Color.RED);
+            g2.setColor(color3);
             double offset = Math.pow(2, trashAnimationProgress) / 2;
             g2.fillRect(PREF_W - (int) (sidebarWidth * offset), 0, sidebarWidth, PREF_H);
         }
@@ -118,11 +161,17 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener {
                 double rot = Math.sin(selectedItemShakeProgress * Math.PI * 2) * 0.1;
                 int rotx = element.x + element.w / 2;
                 int roty = element.y + element.h / 2;
-                drawElement(element, g2, rot, rotx, roty);
+                drawElement(element, 0, g2, rot, rotx, roty);
             } else {
-                drawElement(element, g2, 0, 0, 0);
+                drawElement(element, 0, g2, 0, 0, 0);
             }
         });
+
+        g2.setFont(font2);
+        g2.setColor(color2);
+        FontMetrics fm = g2.getFontMetrics();
+        String txt = "LeviAlchemy";
+        g2.drawString(txt, PREF_W - sidebarWidth - fm.stringWidth(txt), PREF_H - 5);
     }
 
     @Override
@@ -135,25 +184,18 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener {
             sel.x = selstartx - (mousestartx - e.getX());
             sel.y = selstarty - (mousestarty - e.getY());
             // if dragged over the trash
-            if (sel.x + sel.w > PREF_W - 100) {
+            if (sel.x + sel.w > PREF_W - sidebarWidth) {
                 hoveringOverTrash = true;
             } else {
                 hoveringOverTrash = false;
-                System.out.println();
             }
         }
     }
 
     @Override
-    public void mouseClicked(MouseEvent e) {
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent e) {
-    }
-
-    @Override
-    public void mouseExited(MouseEvent e) {
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        sidebarPixelsScrolled += e.getWheelRotation() * -10;
+        System.out.println("Scrolled:" + sidebarPixelsScrolled);
     }
 
     public void selectElement(Element element, MouseEvent event) {
@@ -172,8 +214,9 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener {
             // select the element that was clicked on
             for (int i = 0; i < discovered.size(); i++) {
                 Element el = discovered.get(i);
-                if (el.getHitbox().contains(e.getPoint())) {
+                if (el.getHitbox(sidebarPixelsScrolled).contains(e.getPoint())) {
                     Element toUse = el.clone();
+                    toUse.y += sidebarPixelsScrolled;
                     elements.add(toUse);
                     selectElement(toUse, e);
                     return;
@@ -183,12 +226,12 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener {
 
         for (int i = elements.size() - 1; i >= 0; i--) {
             Element el = elements.get(i);
-            if (el.getHitbox().contains(e.getPoint())) {
+            if (el.getHitbox(0).contains(e.getPoint())) {
                 selectElement(el, e);
                 // move to the top of the list
-                elements.remove(el);
+                elements.remove(i);
                 elements.add(el);
-                break;
+                return;
             }
         }
     }
@@ -205,7 +248,7 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener {
         if (sel != null) {
             for (int i = elements.size() - 1; i >= 0; i--) {
                 Element el = elements.get(i);
-                if (el.getHitbox().contains(e.getPoint()) && el != sel && Element.canMixElements(sel, el)) {
+                if (el.getHitbox(0).contains(e.getPoint()) && el != sel && Element.canMixElements(sel, el)) {
 
                     elements.remove(sel);
                     elements.remove(el);
@@ -217,11 +260,23 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener {
                         addToDiscovered(res.clone());
                     }
 
-                    break;
+                    return;
                 }
             }
+            sel = null;
         }
-        sel = null;
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
     }
 
     /* METHODS FOR CREATING JFRAME AND JPANEL */
