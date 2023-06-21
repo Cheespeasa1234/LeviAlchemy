@@ -19,7 +19,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
-public class Game extends JPanel implements MouseListener, MouseMotionListener, KeyListener {
+public class Game extends JPanel implements MouseListener, MouseMotionListener {
 
     public static final int PREF_W = 800;
     public static final int PREF_H = 600;
@@ -30,7 +30,6 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener, 
         this.setBackground(bg);
         this.addMouseListener(this);
         this.addMouseMotionListener(this);
-        this.addKeyListener(this);
 
         elements = new ArrayList<Element>();
         discovered = new ArrayList<Element>();
@@ -127,19 +126,7 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener, 
     }
 
     @Override
-    public void keyPressed(KeyEvent e) {
-    }
-
-    @Override
     public void mouseMoved(MouseEvent e) {
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {
     }
 
     @Override
